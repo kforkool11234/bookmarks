@@ -85,14 +85,28 @@ export default function BookmarksClient({ user, initialBookmarks }) {
   }
 
   const handleDelete = async (id) => {
+    // Remove from UI immediately
+    setBookmarks((prev) => prev.filter((b) => b.id !== id))
+  
     const { error } = await supabase
       .from('bookmarks')
       .delete()
       .eq('id', id)
       .eq('user_id', user.id)
-
+  
     if (error) {
+      // If delete failed, restore the bookmark
       setError('Failed to delete bookmark.')
+      const { data } = await supabase
+        .from('bookmarks')
+        .select('*')
+        .eq('id', id)
+        .single()
+      if (data) {
+        setBookmarks((prev) => [...prev, data].sort(
+          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        ))
+      }
     }
   }
 
